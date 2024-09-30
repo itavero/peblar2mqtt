@@ -1,0 +1,23 @@
+github:
+  release: true
+
+npm:
+  ignoreVersion: true
+
+git:
+  tagName: v${version}
+  requireCommits: true
+  requireCleanWorkingDir: true
+  requireBranch:
+    - main
+    - release*
+    - hotfix*
+
+hooks:
+  "before:init":
+    - "npm ci"
+    - "npm run build"
+    - "npm run test"
+# plugins:
+#   "@release-it/keep-a-changelog":
+#     addVersionUrl: false

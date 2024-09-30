@@ -1,0 +1,32 @@
+# Example configuration file for Peblar2MQTT
+
+# Required: MQTT settings
+mqtt:
+  # Required: MQTT server URL (use mqtts:// for SSL/TLS connection)
+  server: "mqtt://localhost:1883"
+  # Optional: MQTT base topic for Zigbee2MQTT MQTT messages (default: zigbee2mqtt)
+  base_topic: p2m
+  # Optional: absolute path to SSL/TLS certificate of CA used to sign server and client certificates (default: nothing)
+  ca: "/etc/ssl/mqtt-ca.crt"
+  # Optional: absolute paths to SSL/TLS key and certificate for client-authentication (default: nothing)
+  key: "/etc/ssl/mqtt-client.key"
+  cert: "/etc/ssl/mqtt-client.crt"
+  # Optional: MQTT server authentication user (default: nothing)
+  user: my_user
+  # Optional: MQTT server authentication password (default: nothing)
+  password: my_password
+  # Optional: MQTT client ID (default: nothing)
+  client_id: "MY_CLIENT_ID"
+  # Optional: disable self-signed SSL certificates (default: true)
+  reject_unauthorized: true
+  # Optional: MQTT keepalive in seconds (default: 60)
+  keepalive: 60
+  version: 5
+
+# Array of Peblar chargers
+chargers:
+  - name: charger1
+    host: 192.168.12.34
+    api_key: "MY_API_KEY"
+    # Password is optional, but allows you to use functionality for which no official API exists yet
+    password: "MY_PASSWORD"
