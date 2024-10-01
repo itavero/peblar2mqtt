@@ -13,6 +13,10 @@ That's why I figured, why not take the same approach as I have for some other de
 
 Just getting started, so not much to see yet. I kinda have a proof-of-concept working, but it's still far from a stable release.
 
+### To Do
+
+- [ ] Fix Docker build for platforms other than `linux/amd64` (e.g. my NAS needs `linux/arm64/v8`)
+
 ## Disclaimer
 
 This is a personal project and is definitely still a work in progress. This project and myself are not affiliated with Peblar / Prodrive Technologies NE B.V.
