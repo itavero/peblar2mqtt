@@ -1,5 +1,5 @@
 # Build stage
-FROM node:lts AS build
+FROM node:lts-alpine AS build
 WORKDIR /app
 COPY package*.json .
 COPY *.ts .
@@ -8,7 +8,7 @@ COPY . .
 RUN npm run build
 
 # Containerize
-FROM node:lts
+FROM node:lts-alpine
 ENV NODE_ENV=production
 VOLUME /config
 WORKDIR /app
