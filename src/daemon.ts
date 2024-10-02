@@ -16,12 +16,10 @@ if (!config) {
 }
 
 // Connect MQTT client
-const mqtt_client = mqtt.connect(
-  config.mqtt.server,
-  convertConfigForMqttOptions(config.mqtt)
-);
-// mqtt_client.on('connect', this.onMqttConnected.bind(this));
-// mqtt_client.on('close', this.onMqttClose.bind(this));
+const mqtt_config = convertConfigForMqttOptions(config.mqtt);
+const mqtt_client = mqtt.connect(config.mqtt.server, mqtt_config);
+mqtt_client.on('connect', onMqttConnected);
+mqtt_client.on('close', onMqttClose);
 
 class MqttWrapper implements MqttEndpoint {
   private readonly base_topic_: string;
@@ -72,7 +70,18 @@ for (const charger of config.chargers) {
   monitors.add(monitor);
 }
 
-// Call start on each monitor
-for (const monitor of monitors) {
-  monitor.start();
+function onMqttConnected() {
+  console.log('MQTT connected');
+  // Call start on each monitor
+  for (const monitor of monitors) {
+    monitor.start();
+  }
+}
+
+function onMqttClose() {
+  console.log('MQTT closed');
+  // Call stop on each monitor
+  for (const monitor of monitors) {
+    monitor.stop();
+  }
 }
