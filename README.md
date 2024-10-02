@@ -13,9 +13,11 @@ That's why I figured, why not take the same approach as I have for some other de
 
 Just getting started, so not much to see yet. I kinda have a proof-of-concept working, but it's still far from a stable release.
 
-### To Do
+### To Do (amongst other things)
 
-- [ ] Fix Docker build for platforms other than `linux/amd64` (e.g. my NAS needs `linux/arm64/v8`)
+- [ ] Proper state machine to make sure all data required info is retrieved before sending out Home Assistant MQTT discovery messages
+- [ ] Add a topic to reflect the availability of this daemon (using birth/will messages)
+- [ ] Fix availability config for Home Assistant
 
 ## Disclaimer
 
