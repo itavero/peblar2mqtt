@@ -13,11 +13,17 @@ on:
     branches:
       - main
 
+env:
+  REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
+
 jobs:
   build:
+    permissions:
+      contents: read
+      packages: write
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         platform:
           - linux/amd64
@@ -34,7 +40,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ github.repository }}
+          images: ${{ env.REGISTRY_IMAGE }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -59,7 +65,7 @@ jobs:
         with:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,name=${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
         run: |
@@ -76,6 +82,9 @@ jobs:
           retention-days: 1
 
   merge:
+    permissions:
+      contents: read
+      packages: write
     runs-on: ubuntu-latest
     needs:
       - build
@@ -94,7 +103,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ github.repository }}
+          images: ${{ env.REGISTRY_IMAGE }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -111,8 +120,8 @@ jobs:
         working-directory: /tmp/digests
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ github.repository }}@sha256:%s ' *)
+            $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ github.repository }}:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}
