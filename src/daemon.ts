@@ -11,8 +11,7 @@ console.log(`Peblar2MQTT v${daemon_version} is starting...`);
 // Load configuration YAML file and parse according to Config model
 const config = loadConfig();
 if (!config) {
-  console.error('No (valid) configuration found. Exiting...');
-  process.exit(1);
+  throw new Error('No (valid) configuration found. Exiting...');
 }
 
 // Connect MQTT client
@@ -54,12 +53,19 @@ class MqttWrapper implements MqttEndpoint {
       retain: true,
     });
   }
+
+  getBridgeAvailabilityTopicPath(): string {
+    return this.base_topic_ + '/bridge_availability';
+  }
 }
 
 // Create a charger monitor for each charger in the configuration
 const monitors = new Set<ChargerMonitor>();
+if (config.mqtt.base_topic === undefined || config.mqtt.base_topic === '') {
+  throw new Error('MQTT base topic appears empty. Exiting...');
+}
 for (const charger of config.chargers) {
-  const mqtt = new MqttWrapper(config.mqtt.base_topic || 'p2m', charger.name);
+  const mqtt = new MqttWrapper(config.mqtt.base_topic, charger.name);
   const monitor = new ChargerMonitor(
     mqtt,
     charger.name,
@@ -72,6 +78,13 @@ for (const charger of config.chargers) {
 
 function onMqttConnected() {
   console.log('MQTT connected');
+
+  // Publish birth message
+  if (mqtt_config.will) {
+    console.log('Publish online status of bridge');
+    mqtt_client.publish(mqtt_config.will.topic, 'online', {retain: true});
+  }
+
   // Call start on each monitor
   for (const monitor of monitors) {
     monitor.start();

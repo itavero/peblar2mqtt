@@ -48,5 +48,16 @@ export function convertConfigForMqttOptions(config: Mqtt) {
     options.rejectUnauthorized = false;
   }
 
+  if (config.base_topic === undefined) {
+    config.base_topic = 'p2m';
+  }
+
+  options.will = {
+    topic: config.base_topic + '/bridge_availability',
+    payload: Buffer.from('offline'),
+    qos: 0,
+    retain: true,
+  };
+
   return options;
 }
