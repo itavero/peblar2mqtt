@@ -53,7 +53,7 @@ export function convertConfigForMqttOptions(config: Mqtt) {
   }
 
   options.will = {
-    topic: config.base_topic + '/bridge_availability',
+    topic: `${config.base_topic}/bridge_availability`,
     payload: Buffer.from('offline'),
     qos: 0,
     retain: true,
