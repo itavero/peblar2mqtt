@@ -15,6 +15,9 @@ if (!config) {
 }
 
 // Connect MQTT client
+if (!config.mqtt.base_topic || config.mqtt.base_topic.trim() === '') {
+  config.mqtt.base_topic = 'p2m';
+}
 const mqtt_config = convertConfigForMqttOptions(config.mqtt);
 const mqtt_client = mqtt.connect(config.mqtt.server, mqtt_config);
 mqtt_client.on('connect', onMqttConnected);
