@@ -16,8 +16,6 @@ Just getting started, so not much to see yet. I kinda have a proof-of-concept wo
 ### To Do (amongst other things)
 
 - [ ] Proper state machine to make sure all data required info is retrieved before sending out Home Assistant MQTT discovery messages
-- [ ] Add a topic to reflect the availability of this daemon (using birth/will messages)
-- [ ] Fix availability config for Home Assistant
 
 ## Disclaimer
 
