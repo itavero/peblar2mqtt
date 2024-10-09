@@ -61,7 +61,7 @@ class MqttWrapper implements MqttEndpoint {
 
 // Create a charger monitor for each charger in the configuration
 const monitors = new Set<ChargerMonitor>();
-if (config.mqtt.base_topic === undefined || config.mqtt.base_topic === '') {
+if (!config.mqtt.base_topic) {
   throw new Error('MQTT base topic appears empty. Exiting...');
 }
 for (const charger of config.chargers) {
