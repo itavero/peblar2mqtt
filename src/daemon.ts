@@ -76,13 +76,15 @@ for (const charger of config.chargers) {
   monitors.add(monitor);
 }
 
-function onMqttConnected() {
+async function onMqttConnected() {
   console.log('MQTT connected');
 
   // Publish birth message
   if (mqtt_config.will) {
     console.log('Publish online status of bridge');
-    mqtt_client.publish(mqtt_config.will.topic, 'online', {retain: true});
+    await mqtt_client.publishAsync(mqtt_config.will.topic, 'online', {
+      retain: true,
+    });
   }
 
   // Call start on each monitor
