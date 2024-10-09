@@ -2,7 +2,7 @@ import {Mqtt} from '../models/config';
 import * as fs from 'fs';
 import mqtt from 'mqtt';
 
-export function convertConfigForMqttOptions(config: Mqtt) {
+export function convertConfigForMqttOptions(config: Mqtt): mqtt.IClientOptions {
   const options: mqtt.IClientOptions = {};
   if (
     config.version &&
@@ -47,6 +47,17 @@ export function convertConfigForMqttOptions(config: Mqtt) {
     );
     options.rejectUnauthorized = false;
   }
+
+  if (!config.base_topic) {
+    throw new Error('MQTT base topic must be set');
+  }
+
+  options.will = {
+    topic: `${config.base_topic}/bridge_availability`,
+    payload: Buffer.from('offline'),
+    qos: 0,
+    retain: true,
+  };
 
   return options;
 }
