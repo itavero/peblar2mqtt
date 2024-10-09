@@ -55,7 +55,7 @@ class MqttWrapper implements MqttEndpoint {
   }
 
   getBridgeAvailabilityTopicPath(): string {
-    return this.base_topic_ + '/bridge_availability';
+    return `${this.base_topic_}/bridge_availability`;
   }
 }
 
