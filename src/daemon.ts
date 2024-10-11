@@ -82,9 +82,7 @@ for (const charger of config.chargers) {
 // Wait for process to be terminated
 process.on('SIGINT', async () => {
   console.log('Received SIGINT. Exiting...');
-  for (const monitor of monitors) {
-    await monitor.stop();
-  }
+  await stopAllMonitors();
 
   console.log('[MQTT] Closing down...');
   // Send offline status of bridge
@@ -95,15 +93,18 @@ process.on('SIGINT', async () => {
       {retain: true}
     );
   }
-  await mqtt_client.end();
+  mqtt_client.end();
 });
 
 async function onMqttConnected() {
   console.log('[MQTT] Connected to broker');
 
   // Call start on each monitor
-  for (const monitor of monitors) {
-    monitor.start();
+  const startPromises = Array.from(monitors).map(monitor => monitor.start());
+  try {
+    await Promise.all(startPromises);
+  } catch (error) {
+    throw new Error('Failed to start one or more monitors: ' + error);
   }
 
   // Publish birth message
@@ -115,10 +116,16 @@ async function onMqttConnected() {
   }
 }
 
-function onMqttClose() {
+async function onMqttClose() {
   console.log('[MQTT] Disconnected from broker');
-  // Call stop on each monitor
-  for (const monitor of monitors) {
-    monitor.stop();
+  await stopAllMonitors();
+}
+
+async function stopAllMonitors(): Promise<void> {
+  const stopPromises = Array.from(monitors).map(monitor => monitor.stop());
+  try {
+    await Promise.all(stopPromises);
+  } catch (error) {
+    throw new Error('Failed to stop one or more monitors: ' + error);
   }
 }

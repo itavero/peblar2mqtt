@@ -51,19 +51,19 @@ This software publishes data to the following topics (all prefixed with the conf
 
 ### `bridge_availability`
 
-Publishes either `online` or `offline` (as a _will_ message), to indicate wether the bridge is up and running or not.
+Publishes either `online` or `offline` (as a _will_ message), to indicate whether the bridge is up and running or not.
 This is used by Home Assistant to determine if the provided devices are available or not.
 
 ### `<nickname>/available`
 
 Publishes `online` after successfully requesting information via the REST API.
 
-`offline` is published when an API request fails or the software is being shutdown.
+`offline` is published when an API request fails or the software is being shut down.
 
 ### `<nickname>/system`
 
 Information from the `/system` endpoint of the chargers REST API is published here.
-Currently this is only done when the bridge starts and after a failed request, but not periodically.
+Currently, this is only done when the bridge starts and after a failed request, but not periodically.
 
 ### `<nickname>/ev`
 

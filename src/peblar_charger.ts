@@ -6,7 +6,6 @@ import {isEqual} from 'lodash';
 
 // Constants for "dynamic" timer intervals
 const INTERVAL_CHECK_HEALTH_OFFLINE = 1000 * 10; // 10 seconds
-const INTERVAL_CHECK_SYSTEM = 1000 * 60 * 1; // 1 hour
 const INTERVAL_CHECK_METER_IDLE = 1000 * 60 * 5; // 5 minutes
 const INTERVAL_CHECK_EV_INTERFACE = 1000 * 10; // 10 seconds
 
@@ -16,7 +15,7 @@ interface ProductTypeInfo {
   max_amps: number;
   cable_length: number;
 }
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 const PRODUCT_TYPE_INFO_LOOKUP: Record<string, ProductTypeInfo> = {
   '6004-2300-8002': {name: 'Peblar Home', max_amps: 16, cable_length: 5},
   '6004-2300-4502': {name: 'Peblar Home', max_amps: 16, cable_length: 7.5},
@@ -491,14 +490,14 @@ export class ChargerMonitor {
   private async requestSystemInfo(): Promise<void> {
     const {data, error} = await this.client_.GET('/system');
     if (error) {
-      console.error('[${this.name_}] Error getting system data:', error);
+      console.error(`[${this.name_}] Error getting system data: ${error}`);
       this.fsm_main_.requestFailed();
     } else {
       this.system_info_ = data;
 
       // Log warning if phase count or product number is not set
       if (!data.PhaseCount) {
-        console.warn('[${this.name_}] Phase count is not set in system data.');
+        console.warn(`[${this.name_}] Phase count is not set in system data.`);
       }
 
       // Check if ProductPn is found in lookup table
@@ -533,7 +532,7 @@ export class ChargerMonitor {
       this.mqtt_.publishData('available', AVAILABLE_OFFLINE, true);
     } catch (e) {
       // Log warning and fail silently otherwise
-      console.warn('[${this.name_}] Error publishing offline status:', e);
+      console.warn(`[${this.name_}] Error publishing offline status: ${e}`);
     }
     this.fsm_main_.offlinePublished();
   }

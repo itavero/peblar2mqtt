@@ -154,3 +154,5 @@ reports/
 
 # Miscellaneous
 .editorconfig
+.prettierrc.js
+.prettierignore
