@@ -42,7 +42,7 @@
     "nodemon": "^3.1.7",
     "npmignore": "^0.3.1",
     "openapi-typescript": "^7.4.1",
-    "release-it": "^17.6.0",
+    "release-it": "^17.8.2",
     "rimraf": "^6.0.1",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
