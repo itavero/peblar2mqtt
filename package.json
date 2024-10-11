@@ -50,7 +50,10 @@
   },
   "dependencies": {
     "@astronautlabs/mdns": "^1.0.10",
+    "@fsmoothy/core": "^1.4.0",
+    "@types/lodash": "^4.17.10",
     "axios": "^1.7.7",
+    "lodash": "^4.17.21",
     "mqtt": "^5.10.1",
     "openapi-fetch": "^0.12.2",
     "yaml": "^2.5.1"

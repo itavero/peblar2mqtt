@@ -51,7 +51,7 @@ class MqttWrapper implements MqttEndpoint {
     name: string,
     config: unknown
   ): Promise<void> {
-    const topic = `homeassistant/${type}/${this.name_}/${name}/config`;
+    const topic = `haha/${type}/${this.name_}/${name}/config`;
     await mqtt_client.publishAsync(topic, JSON.stringify(config), {
       retain: true,
     });
@@ -79,8 +79,32 @@ for (const charger of config.chargers) {
   monitors.add(monitor);
 }
 
+// Wait for process to be terminated
+process.on('SIGINT', async () => {
+  console.log('Received SIGINT. Exiting...');
+  for (const monitor of monitors) {
+    await monitor.stop();
+  }
+  // TODO: Wait for all monitors to be stopped before ending the client
+  console.log('Closing MQTT client');
+  // Send offline status of bridge
+  if (mqtt_config.will) {
+    await mqtt_client.publishAsync(
+      mqtt_config.will.topic,
+      mqtt_config.will.payload,
+      {retain: true}
+    );
+  }
+  await mqtt_client.end();
+});
+
 async function onMqttConnected() {
   console.log('MQTT connected');
+
+  // Call start on each monitor
+  for (const monitor of monitors) {
+    monitor.start();
+  }
 
   // Publish birth message
   if (mqtt_config.will) {
@@ -88,11 +112,6 @@ async function onMqttConnected() {
     await mqtt_client.publishAsync(mqtt_config.will.topic, 'online', {
       retain: true,
     });
-  }
-
-  // Call start on each monitor
-  for (const monitor of monitors) {
-    monitor.start();
   }
 }
 

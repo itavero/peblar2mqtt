@@ -13,10 +13,6 @@ That's why I figured, why not take the same approach as I have for some other de
 
 Just getting started, so not much to see yet. I kinda have a proof-of-concept working, but it's still far from a stable release.
 
-### To Do (amongst other things)
-
-- [ ] Proper state machine to make sure all data required info is retrieved before sending out Home Assistant MQTT discovery messages
-
 ## Disclaimer
 
 This is a personal project and is definitely still a work in progress. This project and myself are not affiliated with Peblar / Prodrive Technologies NE B.V.
