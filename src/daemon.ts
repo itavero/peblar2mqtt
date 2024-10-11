@@ -85,8 +85,8 @@ process.on('SIGINT', async () => {
   for (const monitor of monitors) {
     await monitor.stop();
   }
-  // TODO: Wait for all monitors to be stopped before ending the client
-  console.log('Closing MQTT client');
+
+  console.log('[MQTT] Closing down...');
   // Send offline status of bridge
   if (mqtt_config.will) {
     await mqtt_client.publishAsync(
@@ -99,7 +99,7 @@ process.on('SIGINT', async () => {
 });
 
 async function onMqttConnected() {
-  console.log('MQTT connected');
+  console.log('[MQTT] Connected to broker');
 
   // Call start on each monitor
   for (const monitor of monitors) {
@@ -108,7 +108,7 @@ async function onMqttConnected() {
 
   // Publish birth message
   if (mqtt_config.will) {
-    console.log('Publish online status of bridge');
+    console.log('[MQTT] Publish online status of bridge');
     await mqtt_client.publishAsync(mqtt_config.will.topic, 'online', {
       retain: true,
     });
@@ -116,7 +116,7 @@ async function onMqttConnected() {
 }
 
 function onMqttClose() {
-  console.log('MQTT closed');
+  console.log('[MQTT] Disconnected from broker');
   // Call stop on each monitor
   for (const monitor of monitors) {
     monitor.stop();
