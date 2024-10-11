@@ -79,27 +79,53 @@ for (const charger of config.chargers) {
   monitors.add(monitor);
 }
 
+// Wait for process to be terminated
+process.on('SIGINT', async () => {
+  console.log('Received SIGINT. Exiting...');
+  await stopAllMonitors();
+
+  console.log('[MQTT] Closing down...');
+  // Send offline status of bridge
+  if (mqtt_config.will) {
+    await mqtt_client.publishAsync(
+      mqtt_config.will.topic,
+      mqtt_config.will.payload,
+      {retain: true}
+    );
+  }
+  mqtt_client.end();
+});
+
 async function onMqttConnected() {
-  console.log('MQTT connected');
+  console.log('[MQTT] Connected to broker');
+
+  // Call start on each monitor
+  const startPromises = Array.from(monitors).map(monitor => monitor.start());
+  try {
+    await Promise.all(startPromises);
+  } catch (error) {
+    throw new Error('Failed to start one or more monitors: ' + error);
+  }
 
   // Publish birth message
   if (mqtt_config.will) {
-    console.log('Publish online status of bridge');
+    console.log('[MQTT] Publish online status of bridge');
     await mqtt_client.publishAsync(mqtt_config.will.topic, 'online', {
       retain: true,
     });
   }
-
-  // Call start on each monitor
-  for (const monitor of monitors) {
-    monitor.start();
-  }
 }
 
-function onMqttClose() {
-  console.log('MQTT closed');
-  // Call stop on each monitor
-  for (const monitor of monitors) {
-    monitor.stop();
+async function onMqttClose() {
+  console.log('[MQTT] Disconnected from broker');
+  await stopAllMonitors();
+}
+
+async function stopAllMonitors(): Promise<void> {
+  const stopPromises = Array.from(monitors).map(monitor => monitor.stop());
+  try {
+    await Promise.all(stopPromises);
+  } catch (error) {
+    throw new Error('Failed to stop one or more monitors: ' + error);
   }
 }
