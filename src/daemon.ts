@@ -51,7 +51,7 @@ class MqttWrapper implements MqttEndpoint {
     name: string,
     config: unknown
   ): Promise<void> {
-    const topic = `haha/${type}/${this.name_}/${name}/config`;
+    const topic = `homeassistant/${type}/${this.name_}/${name}/config`;
     await mqtt_client.publishAsync(topic, JSON.stringify(config), {
       retain: true,
     });
