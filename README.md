@@ -40,6 +40,9 @@ chargers:
     api_key: a20b39ee2972374567b9f73d495414a5b99eabed989470ee54f764c494fd6448
 ```
 
+For each of the `chargers`, the `name`, `host` and `api_key` are all required and currently the only fields being used.
+`name` is used in the logs and as part of the MQTT topic path (see below). It is recommended to only use alphanumeric characters and underscores for this field.
+
 The API key can be obtained be logging into your Peblar charger via its web interface and going to the advanced settings (`/settings/4`).
 On this page you can also enable the REST API, which is required for this bridge to work.
 
@@ -49,23 +52,26 @@ At this point, read-only access will suffice as write actions have not yet been 
 
 This software publishes data to the following topics (all prefixed with the configured MQTT `base_topic`, which is `p2m` by default).
 
+Wherever the topic is prefixed with `<name>`, this is the name of the charger as configured in the `config.yml`.
+For example, if the charger is named `mario_kart_charger` and the base topic is configured as `p2m`, the availability topic would be `p2m/mario_kart_charger/available`.
+
 ### `bridge_availability`
 
 Publishes either `online` or `offline` (as a _will_ message), to indicate whether the bridge is up and running or not.
 This is used by Home Assistant to determine if the provided devices are available or not.
 
-### `<nickname>/available`
+### `<name>/available`
 
 Publishes `online` after successfully requesting information via the REST API.
 
 `offline` is published when an API request fails or the software is being shut down.
 
-### `<nickname>/system`
+### `<name>/system`
 
 Information from the `/system` endpoint of the chargers REST API is published here.
 Currently, this is only done when the bridge starts and after a failed request, but not periodically.
 
-### `<nickname>/ev`
+### `<name>/ev`
 
 Information from the `/evinterface` endpoint of the chargers REST API is published here.
 This is only published when data has changed, which it polls every 10 seconds.
@@ -73,11 +79,10 @@ This is only published when data has changed, which it polls every 10 seconds.
 An additional field, `_CarHasConnected`, is also published based on the `CpState`.
 If it's in state B / C / D, it will have the value `ON`. In all other cases, it will be `OFF`.
 
-### `<nickname>/meter`
+### `<name>/meter`
 
 Information from the `/meter` endpoint of the chargers REST API is published here.
-When a car is connected (see explanation above), it is published every 10 seconds.
-When no car is connected, it is published every 5 minutes (no change is expected in that case of course).
+This is published every 10 seconds, regardless of whether the data has changed or not.
 
 ### Home Assistant Discovery
 

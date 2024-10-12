@@ -6,8 +6,7 @@ import {isEqual} from 'lodash';
 
 // Constants for "dynamic" timer intervals
 const INTERVAL_CHECK_HEALTH_OFFLINE = 1000 * 10; // 10 seconds
-const INTERVAL_CHECK_METER_IDLE = 1000 * 60 * 5; // 5 minutes
-const INTERVAL_CHECK_EV_INTERFACE = 1000 * 10; // 10 seconds
+const INTERVAL_CHECK_EV_INTERFACE_AND_METER = 1000 * 10; // 10 seconds
 
 // Product name lookup table (based on product number)
 interface ProductTypeInfo {
@@ -210,14 +209,12 @@ enum ChargeDataEvent {
   activate = 'activate',
   deactivate = 'deactivate',
   chargeDataTimerElapsed = 'chargeDataTimerElapsed',
-  doRequestMeter = 'doRequestMeter',
-  doWait = 'doWait',
+  requestSucceeded = 'requestSucceeded',
   requestFailed = 'requestFailed',
 }
 
 type ChargeDataContext = FsmContext<{
   is_car_connected: boolean;
-  last_meter_update: Date;
 }>;
 
 export class ChargerMonitor {
@@ -390,15 +387,15 @@ export class ChargerMonitor {
         ),
         t(
           ChargeDataState.requestEvInterface,
-          ChargeDataEvent.doRequestMeter,
+          ChargeDataEvent.requestSucceeded,
           ChargeDataState.requestMeter,
           {
             onEnter: this.requestMeterData.bind(this),
           }
         ),
         t(
-          [ChargeDataState.requestEvInterface, ChargeDataState.requestMeter],
-          ChargeDataEvent.doWait,
+          ChargeDataState.requestMeter,
+          ChargeDataEvent.requestSucceeded,
           ChargeDataState.waitForNextChargeDataUpdate,
           {
             onEnter: this.startChargeDataTimer.bind(this),
@@ -446,7 +443,7 @@ export class ChargerMonitor {
     }
     this.timer_charge_data = setTimeout(async () => {
       await this.fsm_charge_data_.chargeDataTimerElapsed();
-    }, INTERVAL_CHECK_EV_INTERFACE);
+    }, INTERVAL_CHECK_EV_INTERFACE_AND_METER);
   }
 
   private async performHealthCheck(): Promise<void> {
@@ -838,7 +835,6 @@ export class ChargerMonitor {
   private async requestEvInterfaceData(
     context: ChargeDataContext
   ): Promise<void> {
-    console.debug(`[${this.name_}] Requesting EV interface data...`);
     const {data, error} = await this.client_.GET('/evinterface');
     if (error) {
       console.error(
@@ -847,10 +843,17 @@ export class ChargerMonitor {
       this.fsm_charge_data_.requestFailed();
     } else {
       // Currently connected if CpState is either State B, State C or State D
+      const was_car_connected = context.data.is_car_connected;
       context.data.is_car_connected =
         data.CpState === 'State B' ||
         data.CpState === 'State C' ||
         data.CpState === 'State D';
+
+      if (was_car_connected !== context.data.is_car_connected) {
+        console.log(
+          `[${this.name_}] Car ${was_car_connected ? 'disconnected' : 'connected'}`
+        );
+      }
 
       // Only publish if data has changed
       if (!isEqual(this.ev_interface_, data)) {
@@ -863,32 +866,18 @@ export class ChargerMonitor {
       }
       this.ev_interface_ = data;
 
-      let time_since_last_meter_update = INTERVAL_CHECK_METER_IDLE;
-      if (context.data.last_meter_update) {
-        time_since_last_meter_update =
-          new Date().getTime() - context.data.last_meter_update.getTime();
-      }
-      if (
-        context.data.is_car_connected ||
-        time_since_last_meter_update >= INTERVAL_CHECK_METER_IDLE
-      ) {
-        this.fsm_charge_data_.doRequestMeter();
-      } else {
-        this.fsm_charge_data_.doWait();
-      }
+      this.fsm_charge_data_.requestSucceeded();
     }
   }
 
-  private async requestMeterData(context: ChargeDataContext): Promise<void> {
-    console.debug(`[${this.name_}] Requesting meter data...`);
+  private async requestMeterData(): Promise<void> {
     const {data, error} = await this.client_.GET('/meter');
     if (error) {
       console.error(`[${this.name_}] Error getting meter data: ${error}`);
       this.fsm_charge_data_.requestFailed();
     } else {
       this.mqtt_.publishData('meter', JSON.stringify(data));
-      context.data.last_meter_update = new Date();
-      this.fsm_charge_data_.doWait();
+      this.fsm_charge_data_.requestSucceeded();
     }
   }
 }
