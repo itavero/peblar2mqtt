@@ -8,6 +8,27 @@ import {isEqual} from 'lodash';
 const INTERVAL_CHECK_HEALTH_OFFLINE = 1000 * 10; // 10 seconds
 const INTERVAL_CHECK_EV_INTERFACE_AND_METER = 1000 * 10; // 10 seconds
 
+// Constants related to preventing frequent relay switching
+/**
+ * Minimum value the current limit can be set to in order to turn on the relay.
+ */
+const MINIMUM_CURRENT_LIMIT_TO_TURN_ON = 6000; // 6 A
+
+/**
+ * Minimum time the relay should be in the same state before it can be switched again.
+ * This is to prevent very frequent relay switching.
+ *
+ * This should be considered more as an additional fail-safe, as the algorithm used
+ * to control the current limit should also prevent frequent relay switching.
+ */
+const MINIMUM_RELAY_PERIOD = 1000 * 60; // 60 seconds
+
+/**
+ * Grace period applied after a change in the current limit or force single phase is received.
+ * Data for these two properties may not come in the same request, so we need to wait a bit to be sure.
+ */
+const CURRENT_LIMIT_GRACE_PERIOD = 1000 * 10; // 10 seconds
+
 // Product name lookup table (based on product number)
 interface ProductTypeInfo {
   name: string;
@@ -217,6 +238,31 @@ type ChargeDataContext = FsmContext<{
   is_car_connected: boolean;
 }>;
 
+enum CurrentLimiterState {
+  idle = 'idle',
+  gracePeriod = 'gracePeriod',
+  waitForRelayPeriod = 'waitForRelayPeriod',
+  doRequest = 'doRequest',
+}
+
+enum CurrentLimiterEvent {
+  requestReceived = 'requestReceived',
+  gracePeriodElapsed = 'gracePeriodElapsed',
+  relayPeriodElapsed = 'relayPeriodElapsed',
+  requestSucceeded = 'requestSucceeded',
+  requestFailed = 'requestFailed',
+}
+
+type CurrentLimiterContext = FsmContext<{
+  timer: NodeJS.Timeout | undefined;
+  requested_force_single_phase: boolean | undefined;
+  requested_current_limit: number | undefined;
+  expected_to_switch_main_relay: boolean;
+  expected_to_switch_phase_relay: boolean;
+  last_phase_relay_switch: Date | undefined;
+  last_main_relay_switch: Date | undefined;
+}>;
+
 export class ChargerMonitor {
   private mqtt_: MqttEndpoint;
   private name_: string;
@@ -240,6 +286,11 @@ export class ChargerMonitor {
     ChargeDataState,
     ChargeDataEvent,
     ChargeDataContext
+  >;
+  private fsm_current_limiter_: IStateMachine<
+    CurrentLimiterState,
+    CurrentLimiterEvent,
+    CurrentLimiterContext
   >;
 
   // Charger information
@@ -401,11 +452,216 @@ export class ChargerMonitor {
             onEnter: this.startChargeDataTimer.bind(this),
           }
         ),
+        t(
+          [ChargeDataState.requestEvInterface, ChargeDataState.requestMeter],
+          ChargeDataEvent.requestFailed,
+          ChargeDataState.inactive
+        ),
       ],
     });
 
-    // If request fails in charge data state machine, request failed in main state machine
+    // Current limiter state machine
+    this.fsm_current_limiter_ = new StateMachine<
+      CurrentLimiterState,
+      CurrentLimiterEvent,
+      CurrentLimiterContext
+    >({
+      id: 'current_limiter',
+      initial: CurrentLimiterState.idle,
+      transitions: [
+        t(
+          [CurrentLimiterState.idle, CurrentLimiterState.gracePeriod],
+          CurrentLimiterEvent.requestReceived,
+          CurrentLimiterState.gracePeriod,
+          {
+            guard(
+              context,
+              current_limit: number,
+              force_single_phase: boolean
+            ): boolean {
+              // Check if one of the requested values has changed
+              return (
+                context.data.requested_current_limit !== current_limit ||
+                context.data.requested_force_single_phase !== force_single_phase
+              );
+            },
+            onEnter: (
+              context,
+              current_limit: number,
+              force_single_phase: boolean
+            ) => {
+              const previous_requested_current_limit =
+                context.data.requested_current_limit;
+              const previous_requested_force_single_phase =
+                context.data.requested_force_single_phase;
+
+              context.data.requested_current_limit = current_limit;
+              context.data.requested_force_single_phase = force_single_phase;
+
+              // Check if the main relay is expected to switch (e.g. goes from below threshold to above or vice versa)
+              let expected_to_switch_main_relay = false;
+              let expect_main_to_turn_on = false;
+              if (current_limit !== undefined) {
+                const previous_limit =
+                  this.ev_interface_.ChargeCurrentLimit ??
+                  previous_requested_current_limit;
+                if (previous_limit === undefined) {
+                  expected_to_switch_main_relay = true;
+                } else {
+                  const previous_main_relay_on =
+                    previous_limit >= MINIMUM_CURRENT_LIMIT_TO_TURN_ON;
+                  expect_main_to_turn_on =
+                    current_limit >= MINIMUM_CURRENT_LIMIT_TO_TURN_ON;
+                  expected_to_switch_main_relay =
+                    previous_main_relay_on !== expect_main_to_turn_on;
+                }
+              }
+
+              // Check if the phase relay is expected to switch
+              let expected_to_switch_phase_relay = false;
+              if ((this.system_info_.PhaseCount ?? 3) > 1) {
+                const previous_force_state =
+                  this.ev_interface_.Force1Phase ??
+                  previous_requested_force_single_phase;
+                if (previous_force_state === undefined) {
+                  expected_to_switch_phase_relay = true;
+                } else {
+                  if (!previous_force_state && !expect_main_to_turn_on) {
+                    // was allowing 3 phase, but current limit is now below threshold, which will also turn off the phase relay
+                    expected_to_switch_phase_relay = true;
+                  } else {
+                    expected_to_switch_phase_relay =
+                      previous_force_state !== force_single_phase;
+                  }
+                }
+              }
+
+              context.data.expected_to_switch_main_relay =
+                expected_to_switch_main_relay;
+              context.data.expected_to_switch_phase_relay =
+                expected_to_switch_phase_relay;
+
+              // If one of the relay dates is undefined, set it to current time
+              if (context.data.last_main_relay_switch === undefined) {
+                context.data.last_main_relay_switch = new Date();
+              }
+              if (context.data.last_phase_relay_switch === undefined) {
+                context.data.last_phase_relay_switch = new Date();
+              }
+
+              if (this.timer_charge_data) {
+                clearTimeout(this.timer_charge_data);
+                this.timer_charge_data = undefined;
+              }
+              this.timer_charge_data = setTimeout(async () => {
+                await this.fsm_current_limiter_.gracePeriodElapsed();
+              }, CURRENT_LIMIT_GRACE_PERIOD);
+            },
+          }
+        ),
+        t(
+          CurrentLimiterState.gracePeriod,
+          CurrentLimiterEvent.gracePeriodElapsed,
+          CurrentLimiterState.waitForRelayPeriod,
+          {
+            onEnter: context => {
+              // If we assume a relay change, we need to calculate the relay period
+              let wait_until = new Date();
+              if (context.data.expected_to_switch_main_relay) {
+                if (context.data.last_main_relay_switch) {
+                  wait_until = new Date(
+                    context.data.last_main_relay_switch.getTime() +
+                      MINIMUM_RELAY_PERIOD
+                  );
+                } else {
+                  wait_until.setTime(
+                    wait_until.getTime() + MINIMUM_RELAY_PERIOD
+                  );
+                }
+                if (context.data.expected_to_switch_phase_relay) {
+                  let alternative_time = new Date();
+                  if (context.data.last_phase_relay_switch) {
+                    alternative_time = new Date(
+                      context.data.last_phase_relay_switch.getTime() +
+                        MINIMUM_RELAY_PERIOD
+                    );
+                  } else {
+                    alternative_time.setTime(
+                      alternative_time.getTime() + MINIMUM_RELAY_PERIOD
+                    );
+                  }
+                  if (alternative_time > wait_until) {
+                    wait_until = alternative_time;
+                  }
+                }
+
+                // Is wait until in the past?
+                if (wait_until < new Date()) {
+                  // No need to wait, we can proceed immediately
+                  this.fsm_current_limiter_.relayPeriodElapsed();
+                } else {
+                  // Wait until the calculated time
+                  if (context.data.timer) {
+                    clearTimeout(context.data.timer);
+                    context.data.timer = undefined;
+                  }
+                  context.data.timer = setTimeout(async () => {
+                    await this.fsm_current_limiter_.relayPeriodElapsed();
+                  }, wait_until.getTime() - new Date().getTime());
+                }
+              }
+            },
+          }
+        ),
+        t(
+          CurrentLimiterState.waitForRelayPeriod,
+          CurrentLimiterEvent.relayPeriodElapsed,
+          CurrentLimiterState.doRequest,
+          {
+            onEnter: async context => {
+              const {data, error} = await this.client_.PATCH('/evinterface', {
+                body: {
+                  ChargeCurrentLimit: context.data.requested_current_limit,
+                  Force1Phase: context.data.requested_force_single_phase,
+                },
+              });
+
+              if (error) {
+                console.error(
+                  `[${this.name_}] Error setting current limit/single phase: ${error}`
+                );
+                await this.fsm_current_limiter_.requestFailed();
+              } else {
+                console.log(
+                  `[${this.name_}] Current limit set successfully: ${data}`
+                );
+
+                // Clear requested values
+                context.data.requested_current_limit = undefined;
+                context.data.requested_force_single_phase = undefined;
+                await this.fsm_current_limiter_.requestSucceeded();
+              }
+            },
+          }
+        ),
+        t(
+          CurrentLimiterState.doRequest,
+          CurrentLimiterEvent.requestSucceeded,
+          CurrentLimiterState.idle
+        ),
+        t(
+          CurrentLimiterState.doRequest,
+          CurrentLimiterEvent.requestFailed,
+          CurrentLimiterState.idle
+        ),
+      ],
+    });
+
+    // If request fails in charge data or current limiter state machine, request failed in main state machine
     this.fsm_charge_data_.on(ChargeDataEvent.requestFailed, () => {
+      this.fsm_main_.requestFailed();
+    });
+    this.fsm_current_limiter_.on(CurrentLimiterEvent.requestFailed, () => {
       this.fsm_main_.requestFailed();
     });
   }
