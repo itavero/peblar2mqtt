@@ -32,7 +32,7 @@
   "license": "MIT",
   "devDependencies": {
     "@release-it/keep-a-changelog": "^5.0.0",
-    "@types/jest": "^29.5.13",
+    "@types/jest": "^29.5.14",
     "@types/node": "22.8.6",
     "dotenv-cli": "^7.4.2",
     "gts": "^5.3.1",
