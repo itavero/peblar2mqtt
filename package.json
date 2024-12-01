@@ -56,7 +56,7 @@
     "lodash": "^4.17.21",
     "mqtt": "^5.10.3",
     "openapi-fetch": "^0.12.2",
-    "yaml": "^2.6.0"
+    "yaml": "^2.6.1"
   },
   "publishConfig": {
     "ignore": [
