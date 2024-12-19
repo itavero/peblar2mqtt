@@ -43,7 +43,7 @@ export function convertConfigForMqttOptions(config: Mqtt): mqtt.IClientOptions {
 
   if (config.reject_unauthorized !== undefined && !config.reject_unauthorized) {
     console.debug(
-      'MQTT reject_unauthorized set false, ignoring certificate warnings.'
+      'MQTT reject_unauthorized set false, ignoring certificate warnings.',
     );
     options.rejectUnauthorized = false;
   }
