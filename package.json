@@ -9,6 +9,9 @@
   "bin": {
     "peblar2mqtt": "./bin/peblar2mqtt"
   },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "build": "rimraf ./build && npm run compile",
     "start:dev": "npx nodemon",
