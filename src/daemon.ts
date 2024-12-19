@@ -39,7 +39,7 @@ class MqttWrapper implements MqttEndpoint {
   async publishData(
     subject: string,
     data: string,
-    retain?: boolean
+    retain?: boolean,
   ): Promise<void> {
     await mqtt_client.publishAsync(this.getFullDataTopicPath(subject), data, {
       retain: retain,
@@ -49,7 +49,7 @@ class MqttWrapper implements MqttEndpoint {
   async publishHomeAssistantDiscoveryConfig(
     type: string,
     name: string,
-    config: unknown
+    config: unknown,
   ): Promise<void> {
     const topic = `homeassistant/${type}/${this.name_}/${name}/config`;
     await mqtt_client.publishAsync(topic, JSON.stringify(config), {
@@ -74,7 +74,7 @@ for (const charger of config.chargers) {
     charger.name,
     charger.host,
     charger.api_key,
-    charger.password
+    charger.password,
   );
   monitors.add(monitor);
 }
@@ -90,7 +90,7 @@ process.on('SIGINT', async () => {
     await mqtt_client.publishAsync(
       mqtt_config.will.topic,
       mqtt_config.will.payload,
-      {retain: true}
+      {retain: true},
     );
   }
   mqtt_client.end();

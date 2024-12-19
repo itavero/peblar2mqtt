@@ -69,7 +69,7 @@ export interface MqttEndpoint {
   publishHomeAssistantDiscoveryConfig(
     type: string,
     name: string,
-    config: unknown
+    config: unknown,
   ): void;
   getFullDataTopicPath(subject: string): string;
   getBridgeAvailabilityTopicPath(): string;
@@ -90,7 +90,7 @@ class HomeAssistantDeviceInfo {
     model: string,
     name: string,
     sw_version?: string,
-    serial_number?: string
+    serial_number?: string,
   ) {
     this.identifiers_ = new Set(identifiers);
     this.manufacturer_ = manufacturer;
@@ -255,7 +255,7 @@ export class ChargerMonitor {
     name: string,
     host: string,
     api_key: string,
-    password?: string
+    password?: string,
   ) {
     this.mqtt_ = mqtt;
     this.name_ = name;
@@ -287,7 +287,7 @@ export class ChargerMonitor {
           ChargerMonitorState.waitOffline,
           {
             onEnter: this.startWaitOfflineTimer.bind(this),
-          }
+          },
         ),
         t(
           ChargerMonitorState.waitOffline,
@@ -295,7 +295,7 @@ export class ChargerMonitor {
           ChargerMonitorState.checkHealth,
           {
             onEnter: this.performHealthCheck.bind(this),
-          }
+          },
         ),
         t(
           [ChargerMonitorState.waitOffline, ChargerMonitorState.stopped],
@@ -303,7 +303,7 @@ export class ChargerMonitor {
           ChargerMonitorState.checkHealth,
           {
             onEnter: this.performHealthCheck.bind(this),
-          }
+          },
         ),
         t(
           ChargerMonitorState.checkHealth,
@@ -311,7 +311,7 @@ export class ChargerMonitor {
           ChargerMonitorState.getSystemInfo,
           {
             onEnter: this.requestSystemInfo.bind(this),
-          }
+          },
         ),
         t(
           ChargerMonitorState.getSystemInfo,
@@ -320,7 +320,7 @@ export class ChargerMonitor {
           {
             onEnter: this.onlineStateEntered.bind(this),
             onLeave: this.onlineStateBeingLeft.bind(this),
-          }
+          },
         ),
         t(
           [
@@ -333,12 +333,12 @@ export class ChargerMonitor {
           ChargerMonitorState.shutdown,
           {
             onEnter: this.stopAndGoOffline.bind(this),
-          }
+          },
         ),
         t(
           ChargerMonitorState.shutdown,
           ChargerMonitorEvent.offlinePublished,
-          ChargerMonitorState.stopped
+          ChargerMonitorState.stopped,
         ),
       ],
     });
@@ -358,7 +358,7 @@ export class ChargerMonitor {
           ChargeDataState.requestEvInterface,
           {
             onEnter: this.requestEvInterfaceData.bind(this),
-          }
+          },
         ),
         t(
           ChargeDataState.waitForNextChargeDataUpdate,
@@ -366,7 +366,7 @@ export class ChargerMonitor {
           ChargeDataState.requestEvInterface,
           {
             onEnter: this.requestEvInterfaceData.bind(this),
-          }
+          },
         ),
         t(
           [
@@ -383,7 +383,7 @@ export class ChargerMonitor {
                 this.timer_charge_data = undefined;
               }
             },
-          }
+          },
         ),
         t(
           ChargeDataState.requestEvInterface,
@@ -391,7 +391,7 @@ export class ChargerMonitor {
           ChargeDataState.requestMeter,
           {
             onEnter: this.requestMeterData.bind(this),
-          }
+          },
         ),
         t(
           ChargeDataState.requestMeter,
@@ -399,14 +399,14 @@ export class ChargerMonitor {
           ChargeDataState.waitForNextChargeDataUpdate,
           {
             onEnter: this.startChargeDataTimer.bind(this),
-          }
+          },
         ),
       ],
     });
 
     // If request fails in charge data state machine, request failed in main state machine
-    this.fsm_charge_data_.on(ChargeDataEvent.requestFailed, () => {
-      this.fsm_main_.requestFailed();
+    this.fsm_charge_data_.on(ChargeDataEvent.requestFailed, async () => {
+      await this.fsm_main_.requestFailed();
     });
   }
 
@@ -431,8 +431,8 @@ export class ChargerMonitor {
       clearTimeout(this.timer_wait_offline);
       this.timer_wait_offline = undefined;
     }
-    this.timer_wait_offline = setTimeout(() => {
-      this.fsm_main_.timerElapsed();
+    this.timer_wait_offline = setTimeout(async () => {
+      await this.fsm_main_.timerElapsed();
     }, INTERVAL_CHECK_HEALTH_OFFLINE);
   }
 
@@ -460,7 +460,7 @@ export class ChargerMonitor {
       // Log failure
       console.error(`[${this.name_}] Error checking health: ${error}`);
 
-      this.fsm_main_.requestFailed();
+      await this.fsm_main_.requestFailed();
       return;
     }
 
@@ -471,24 +471,24 @@ export class ChargerMonitor {
     // Check API version is compatible with v1.0 using SemVer
     if (!this.api_version_.startsWith('1.')) {
       console.error(
-        `[${this.name_}] Expected API version compatible with v1.0, but got API version ${this.api_version_}`
+        `[${this.name_}] Expected API version compatible with v1.0, but got API version ${this.api_version_}`,
       );
-      this.fsm_main_.requestFailed();
+      await this.fsm_main_.requestFailed();
       return;
     }
 
     // Health check succeeded
     console.log(
-      `[${this.name_}] Health: OK (API v${this.api_version_}; ${this.api_can_write_ ? 'read/write' : 'read-only'})`
+      `[${this.name_}] Health: OK (API v${this.api_version_}; ${this.api_can_write_ ? 'read/write' : 'read-only'})`,
     );
-    this.fsm_main_.healthOk();
+    await this.fsm_main_.healthOk();
   }
 
   private async requestSystemInfo(): Promise<void> {
     const {data, error} = await this.client_.GET('/system');
     if (error) {
       console.error(`[${this.name_}] Error getting system data: ${error}`);
-      this.fsm_main_.requestFailed();
+      await this.fsm_main_.requestFailed();
     } else {
       this.system_info_ = data;
 
@@ -502,13 +502,13 @@ export class ChargerMonitor {
         this.product_info_ = PRODUCT_TYPE_INFO_LOOKUP[data.ProductPn];
       } else {
         console.warn(
-          `[${this.name_}] Product number (${data.ProductPn ?? 'not provided'}) not found in lookup table. Using fallback product number (${FALLBACK_PRODUCT_PN}).`
+          `[${this.name_}] Product number (${data.ProductPn ?? 'not provided'}) not found in lookup table. Using fallback product number (${FALLBACK_PRODUCT_PN}).`,
         );
         this.product_info_ = PRODUCT_TYPE_INFO_LOOKUP[FALLBACK_PRODUCT_PN];
       }
 
       this.mqtt_.publishData('system', JSON.stringify(data), true);
-      this.fsm_main_.systemInfoUpdated();
+      await this.fsm_main_.systemInfoUpdated();
     }
   }
 
@@ -531,19 +531,19 @@ export class ChargerMonitor {
       // Log warning and fail silently otherwise
       console.warn(`[${this.name_}] Error publishing offline status: ${e}`);
     }
-    this.fsm_main_.offlinePublished();
+    await this.fsm_main_.offlinePublished();
   }
 
   private async onlineStateEntered(): Promise<void> {
     console.log(
-      `[${this.name_}] Charger is online! (${this.product_info_.name})`
+      `[${this.name_}] Charger is online! (${this.product_info_.name})`,
     );
 
     // Publish online status
     this.mqtt_.publishData('available', AVAILABLE_ONLINE, true);
 
     // Publish HA device info
-    this.publishHomeAssistantDeviceInfo();
+    await this.publishHomeAssistantDeviceInfo();
 
     // Immediately request EV interface data
     if (await this.fsm_charge_data_.can(ChargeDataEvent.activate)) {
@@ -565,7 +565,7 @@ export class ChargerMonitor {
       'Peblar',
       product_name,
       this.name_,
-      this.system_info_.FirmwareVersion ?? ''
+      this.system_info_.FirmwareVersion ?? '',
     );
     if (this.system_info_.ProductSn) {
       device_info.serialNumber = this.system_info_.ProductSn;
@@ -653,7 +653,7 @@ export class ChargerMonitor {
           state_class: 'measurement',
           device: device,
           origin: origin,
-        }
+        },
       );
       // Sensor: Current
       this.mqtt_.publishHomeAssistantDiscoveryConfig(
@@ -672,7 +672,7 @@ export class ChargerMonitor {
           state_class: 'measurement',
           device: device,
           origin: origin,
-        }
+        },
       );
       // Sensor: Voltage
       this.mqtt_.publishHomeAssistantDiscoveryConfig(
@@ -691,7 +691,7 @@ export class ChargerMonitor {
           state_class: 'measurement',
           device: device,
           origin: origin,
-        }
+        },
       );
     }
 
@@ -713,7 +713,7 @@ export class ChargerMonitor {
         force_update: true,
         device: device,
         origin: origin,
-      }
+      },
     );
     // this.mqtt_.publishHomeAssistantDiscoveryConfig(
     //   'number',
@@ -749,7 +749,7 @@ export class ChargerMonitor {
         icon: 'mdi:car-speed-limiter',
         device: device,
         origin: origin,
-      }
+      },
     );
     this.mqtt_.publishHomeAssistantDiscoveryConfig(
       'sensor',
@@ -785,7 +785,7 @@ export class ChargerMonitor {
         ],
         device: device,
         origin: origin,
-      }
+      },
     );
     // this.mqtt_.publishHomeAssistantDiscoveryConfig(
     //   'switch',
@@ -828,19 +828,19 @@ export class ChargerMonitor {
         ],
         device: device,
         origin: origin,
-      }
+      },
     );
   }
 
   private async requestEvInterfaceData(
-    context: ChargeDataContext
+    context: ChargeDataContext,
   ): Promise<void> {
     const {data, error} = await this.client_.GET('/evinterface');
     if (error) {
       console.error(
-        `[${this.name_}] Error getting EV interface data: ${error}`
+        `[${this.name_}] Error getting EV interface data: ${error}`,
       );
-      this.fsm_charge_data_.requestFailed();
+      await this.fsm_charge_data_.requestFailed();
     } else {
       // Currently connected if CpState is either State B, State C or State D
       const was_car_connected = context.data.is_car_connected;
@@ -851,7 +851,7 @@ export class ChargerMonitor {
 
       if (was_car_connected !== context.data.is_car_connected) {
         console.log(
-          `[${this.name_}] Car ${was_car_connected ? 'disconnected' : 'connected'}`
+          `[${this.name_}] Car ${was_car_connected ? 'disconnected' : 'connected'}`,
         );
       }
 
@@ -866,7 +866,7 @@ export class ChargerMonitor {
       }
       this.ev_interface_ = data;
 
-      this.fsm_charge_data_.requestSucceeded();
+      await this.fsm_charge_data_.requestSucceeded();
     }
   }
 
@@ -874,10 +874,10 @@ export class ChargerMonitor {
     const {data, error} = await this.client_.GET('/meter');
     if (error) {
       console.error(`[${this.name_}] Error getting meter data: ${error}`);
-      this.fsm_charge_data_.requestFailed();
+      await this.fsm_charge_data_.requestFailed();
     } else {
       this.mqtt_.publishData('meter', JSON.stringify(data));
-      this.fsm_charge_data_.requestSucceeded();
+      await this.fsm_charge_data_.requestSucceeded();
     }
   }
 }

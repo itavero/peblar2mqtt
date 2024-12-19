@@ -1,4 +1,5 @@
 {
   "extends": "./node_modules/gts/",
-  "reportUnusedDisableDirectives": true
+  "reportUnusedDisableDirectives": true,
+  "ignorePatterns": ["git-version.ts"]
 }
