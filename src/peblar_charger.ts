@@ -452,7 +452,7 @@ export class ChargerMonitor {
 
     // Check if the charger is online
     const {data, error} = await this.client_.GET('/health');
-    if (error) {
+    if (error || data === undefined) {
       // Reset information
       this.api_version_ = '0';
       this.api_can_write_ = false;
@@ -486,7 +486,7 @@ export class ChargerMonitor {
 
   private async requestSystemInfo(): Promise<void> {
     const {data, error} = await this.client_.GET('/system');
-    if (error) {
+    if (error || data === undefined) {
       console.error(`[${this.name_}] Error getting system data: ${error}`);
       await this.fsm_main_.requestFailed();
     } else {
@@ -836,7 +836,7 @@ export class ChargerMonitor {
     context: ChargeDataContext,
   ): Promise<void> {
     const {data, error} = await this.client_.GET('/evinterface');
-    if (error) {
+    if (error || data === undefined) {
       console.error(
         `[${this.name_}] Error getting EV interface data: ${error}`,
       );
