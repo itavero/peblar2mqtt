@@ -1,0 +1,14 @@
+{
+  "configurations": [
+    {
+      "name": "Run Peblar2MQTT daemon",
+      "request": "launch",
+      "skipFiles": ["<node_internals>/**"],
+      "type": "node",
+      "program": "${workspaceFolder}/build/daemon.js",
+      "preLaunchTask": "npm: compile",
+      "outFiles": ["${workspaceFolder}/build/**/*.js"],
+      "console": "integratedTerminal"
+    }
+  ]
+}
