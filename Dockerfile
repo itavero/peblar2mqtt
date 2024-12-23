@@ -5,7 +5,7 @@ COPY package*.json .
 COPY *.ts .
 RUN npm --log-level=info ci
 COPY . .
-RUN npm run build && ls -hal /app/build
+RUN npm run build
 
 # Containerize
 FROM node:22-alpine
