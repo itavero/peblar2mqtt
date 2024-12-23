@@ -1,4 +1,5 @@
 {
+  "version": "0.2.0",
   "configurations": [
     {
       "name": "Run Peblar2MQTT daemon",
@@ -9,6 +10,17 @@
       "preLaunchTask": "npm: compile",
       "outFiles": ["${workspaceFolder}/build/**/*.js"],
       "console": "integratedTerminal"
+    },
+    {
+      "name": "Run in Docker",
+      "type": "node",
+      "request": "attach",
+      "remoteRoot": "/app",
+      "port": 9229,
+      "restart": true,
+      "preLaunchTask": "docker-build-and-run",
+      "outFiles": ["${workspaceFolder}/build/**/*.js"],
+      "skipFiles": ["<node_internals>/**"]
     }
   ]
 }

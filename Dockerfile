@@ -1,5 +1,5 @@
 # Build stage
-FROM node:22-alpine AS build
+FROM node:22-slim AS build
 WORKDIR /app
 COPY package*.json .
 COPY *.ts .
@@ -8,7 +8,7 @@ COPY . .
 RUN npm run build
 
 # Containerize
-FROM node:22-alpine
+FROM node:22-slim
 ENV NODE_ENV=production
 VOLUME /config
 WORKDIR /app
@@ -16,4 +16,4 @@ COPY package*.json .
 RUN npm --log-level=info ci --only=production
 COPY --from=build /app/build /app/dist
 COPY --from=build /app/.app-version.json /app/
-CMD ["node", "dist/daemon.js"]
+CMD ["node", "dist/src/daemon.js"]

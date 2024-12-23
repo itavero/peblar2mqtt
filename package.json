@@ -5,7 +5,7 @@
   "homepage": "https://github.com/itavero/peblar2mqtt",
   "repository": "github:itavero/peblar2mqtt",
   "bugs": "https://github.com/itavero/peblar2mqtt/issues",
-  "main": "./build/daemon.js",
+  "main": "./build/src/daemon.js",
   "bin": {
     "peblar2mqtt": "./bin/peblar2mqtt"
   },
@@ -15,7 +15,7 @@
   "scripts": {
     "build": "rimraf ./build && npm run compile",
     "start:dev": "npx nodemon",
-    "start": "npm run build && node build/daemon.js",
+    "start": "npm run build && node build/src/daemon.js",
     "lint": "gts lint",
     "clean": "gts clean",
     "compile": "npm run update-git-version && tsc",
