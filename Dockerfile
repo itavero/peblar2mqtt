@@ -5,7 +5,7 @@ COPY package*.json .
 COPY *.ts .
 RUN npm --log-level=info ci
 COPY . .
-RUN npm run build
+RUN npm run build && ls -hal /app/build
 
 # Containerize
 FROM node:22-alpine
@@ -16,4 +16,4 @@ COPY package*.json .
 RUN npm --log-level=info ci --only=production
 COPY --from=build /app/build /app/dist
 COPY --from=build /app/.app-version.json /app/
-CMD ["node", "dist/daemon.js"]
+CMD ["node", "dist/src/daemon.js"]

@@ -1,2 +1,2 @@
 #!/usr/bin/env node
-require('../build/daemon.js');
+require('../build/src/daemon.js');
