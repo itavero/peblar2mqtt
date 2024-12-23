@@ -433,7 +433,9 @@ export class ChargerMonitor {
       this.timer_wait_offline = undefined;
     }
     this.timer_wait_offline = setTimeout(async () => {
-      await this.fsm_main_.timerElapsed();
+      if (await this.fsm_main_.can(ChargerMonitorEvent.timerElapsed)) {
+        await this.fsm_main_.timerElapsed();
+      }
     }, INTERVAL_CHECK_HEALTH_OFFLINE);
   }
 
@@ -443,7 +445,11 @@ export class ChargerMonitor {
       this.timer_charge_data = undefined;
     }
     this.timer_charge_data = setTimeout(async () => {
-      await this.fsm_charge_data_.chargeDataTimerElapsed();
+      if (
+        await this.fsm_charge_data_.can(ChargeDataEvent.chargeDataTimerElapsed)
+      ) {
+        await this.fsm_charge_data_.chargeDataTimerElapsed();
+      }
     }, INTERVAL_CHECK_EV_INTERFACE_AND_METER);
   }
 
@@ -487,7 +493,9 @@ export class ChargerMonitor {
     );
 
     // Note: figure out why things no longer work if calls like the next are awaited.
-    this.fsm_main_.healthOk();
+    if (await this.fsm_main_.can(ChargerMonitorEvent.healthOk)) {
+      await this.fsm_main_.healthOk();
+    }
   }
 
   private async requestSystemInfo(): Promise<void> {
