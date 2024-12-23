@@ -5,6 +5,7 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "removeComments": true,
+    "sourceMap": true,
     // Inspired by: https://github.com/tsconfig/bases/blob/main/bases/node-lts.json
     "lib": ["es2023"],
     "module": "Node16",

@@ -14,7 +14,7 @@ function getGitVersion(): string {
     }
 
     // Get the number of commits since the latest tag
-    const commitCount = parseInt(
+    const commitCount = Number.parseInt(
       execSync(`git rev-list ${latestTag}..HEAD --count`).toString().trim(),
       10,
     );
