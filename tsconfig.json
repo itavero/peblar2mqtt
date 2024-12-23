@@ -3,10 +3,18 @@
   "compilerOptions": {
     "outDir": "./build",
     "resolveJsonModule": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "removeComments": true,
+    "sourceMap": true,
+    "tsBuildInfoFile": "build/.tsbuildinfo",
+    // Inspired by: https://github.com/tsconfig/bases/blob/main/bases/node-lts.json
+    "lib": ["es2023"],
+    "module": "Node16",
+    "target": "es2023",
+    "strict": true,
+    "skipLibCheck": true,
+    "rootDir": "./src"
   },
-  "include": [
-    "src/**/*.ts",
-    "test/**/*.ts"
-  ]
+  "include": ["./src/**/*.ts"],
+  "exclude": ["**/*.spec.ts"]
 }

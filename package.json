@@ -18,7 +18,7 @@
     "start": "npm run build && node build/src/daemon.js",
     "lint": "gts lint",
     "clean": "gts clean",
-    "compile": "npm run update-git-version && tsc",
+    "compile": "npm run update-git-version && tsc --build --verbose",
     "fix": "gts fix",
     "test": "jest --passWithNoTests",
     "prepack": "npmignore --auto",
