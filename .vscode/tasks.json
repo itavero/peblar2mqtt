@@ -4,7 +4,7 @@
     {
       "label": "docker-build-and-run",
       "type": "shell",
-      "command": "docker build --progress=plain -t peblar2mqtt-debug . && docker run --rm -p 9229:9229 -v ${workspaceFolder}:/app -w /app --name peblar2mqtt-debug peblar2mqtt-debug node --inspect=0.0.0.0:9229 dist/src/daemon.js",
+      "command": "docker build --progress=plain -t peblar2mqtt-debug . && docker run --rm -p 9229:9229 -v ${workspaceFolder}:/app -w /app --name peblar2mqtt-debug peblar2mqtt-debug node --inspect=0.0.0.0:9229 build/daemon.js",
       "problemMatcher": []
     }
   ]
