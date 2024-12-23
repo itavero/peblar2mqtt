@@ -7,11 +7,10 @@
     "removeComments": true,
     // Inspired by: https://github.com/tsconfig/bases/blob/main/bases/node-lts.json
     "lib": ["es2023"],
-    "module": "node16",
-    "target": "es2022",
+    "module": "Node16",
+    "target": "ES2023",
     "strict": true,
     "skipLibCheck": true,
-    "moduleResolution": "node16",
     "rootDir": "./src"
   },
   "include": ["src/**/*.ts"],
