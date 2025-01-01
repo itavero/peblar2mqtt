@@ -55,7 +55,7 @@
     "@astronautlabs/mdns": "^1.0.10",
     "@fsmoothy/core": "^1.4.0",
     "@types/lodash": "^4.17.13",
-    "axios": "^1.7.8",
+    "axios": "^1.7.9",
     "lodash": "^4.17.21",
     "mqtt": "^5.10.3",
     "openapi-fetch": "^0.13.3",
