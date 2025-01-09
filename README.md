@@ -1,3 +1,6 @@
+# ARCHIVED: Home Assistant provides an integration as of v2025.1
+> See [Home Assistant documentation on the Peblar integration](https://www.home-assistant.io/integrations/peblar/)
+
 # ⚡️ Peblar2MQTT
 
 > Connect your Peblar EV charger to other systems (like Home Assistant) via MQTT.
